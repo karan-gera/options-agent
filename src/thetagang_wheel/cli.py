@@ -162,6 +162,33 @@ def scan(
             except Exception as e:
                 typer.echo(f"❌ Sentiment analysis error: {e}", err=True)
                 filtered_posts = posts  # Fall back to unfiltered posts
+                
+            # Step 5: Ticker Extraction & Validation
+            typer.echo("\n🔍 Extracting and validating tickers...")
+            try:
+                from .tickers import extract_valid_tickers, get_top_tickers
+                
+                # Extract valid tickers from filtered posts
+                ticker_mentions = extract_valid_tickers(filtered_posts)
+                
+                if ticker_mentions:
+                    top_tickers = get_top_tickers(ticker_mentions, limit=10)
+                    typer.echo(f"🎯 Found {len(ticker_mentions)} valid tickers:")
+                    
+                    for ticker, count in top_tickers:
+                        typer.echo(f"   {ticker}: {count} mentions")
+                        
+                    if verbose:
+                        typer.echo(f"\n📈 Total mentions across all tickers: {sum(ticker_mentions.values())}")
+                else:
+                    typer.echo("⚠️ No valid tickers found in posts")
+                    
+            except Exception as e:
+                typer.echo(f"❌ Ticker extraction error: {e}", err=True)
+                if "timeout" in str(e).lower():
+                    typer.echo("💡 Network timeout downloading symbol masters - check internet connection", err=True)
+                else:
+                    typer.echo("💡 Ticker extraction failed - continuing without ticker validation", err=True)
                     
         except Exception as e:
             typer.echo(f"❌ Reddit ingestion error: {e}", err=True)

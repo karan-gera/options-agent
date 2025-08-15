@@ -18,21 +18,25 @@ class Config(BaseSettings):
     reddit_secret: str = Field(..., env="REDDIT_SECRET") 
     reddit_user_agent: str = Field(..., env="REDDIT_USER_AGENT")
     
-    # Screening Parameters
-    account_size: float = Field(10000.0, env="ACCOUNT_SIZE")
-    min_open_interest: int = Field(50, env="MIN_OPEN_INTEREST")
-    max_bid_ask_spread_pct: float = Field(5.0, env="MAX_BID_ASK_SPREAD_PCT")
-    earnings_blackout_days: int = Field(7, env="EARNINGS_BLACKOUT_DAYS")
+    # Core Screening Parameters
+    capital: float = Field(10000.0, env="CAPITAL", description="Account capital for position sizing")
+    max_strike: float = Field(100.0, env="MAX_STRIKE", description="Maximum strike price")
+    min_oi: int = Field(200, env="MIN_OI", description="Minimum open interest")
+    max_spread_pct: float = Field(5.0, env="MAX_SPREAD_PCT", description="Maximum bid-ask spread percentage")
+    delta_min: float = Field(0.20, env="DELTA_MIN", description="Minimum delta for put options")
+    delta_max: float = Field(0.35, env="DELTA_MAX", description="Maximum delta for put options")
+    exclude_earnings: bool = Field(True, env="EXCLUDE_EARNINGS", description="Exclude options near earnings")
     
-    # Reddit Scraping
-    subreddit_name: str = Field("thetagang", env="SUBREDDIT_NAME")
-    max_posts: int = Field(25, env="MAX_POSTS")
+    # Reddit Configuration  
+    subreddit: str = Field("thetagang", env="SUBREDDIT", description="Subreddit to analyze")
+    reddit_limit: int = Field(200, env="REDDIT_LIMIT", description="Maximum posts to fetch")
+    reddit_window_days: int = Field(7, env="REDDIT_WINDOW_DAYS", description="Days back to look for posts")
     
-    # Data Storage
-    db_path: str = Field("thetagang_wheel.db", env="DB_PATH")
+    # System Settings
+    timezone: str = Field("America/New_York", env="TIMEZONE", description="Market timezone")
     
-    # Output Settings
-    timezone: str = Field("America/New_York", env="TIMEZONE")
+    # Legacy compatibility (optional)
+    db_path: str = Field("thetagang_wheel.db", env="DB_PATH", description="Database file path")
     
     class Config:
         env_file = ".env"

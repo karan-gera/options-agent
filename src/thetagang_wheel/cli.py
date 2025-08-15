@@ -27,6 +27,7 @@ def scan(
     delta_min: float = typer.Option(None, "--delta-min", help="Minimum delta for put options"),
     delta_max: float = typer.Option(None, "--delta-max", help="Maximum delta for put options"),
     exclude_earnings: Optional[bool] = typer.Option(None, "--exclude-earnings/--include-earnings", help="Exclude options near earnings"),
+    include_unclear_sentiment: Optional[bool] = typer.Option(None, "--include-unclear/--exclude-unclear", help="Include posts with unclear sentiment"),
     
     # Reddit configuration
     subreddit: str = typer.Option(None, "--subreddit", help="Subreddit to analyze"),
@@ -82,6 +83,8 @@ def scan(
         config.delta_max = delta_max
     if exclude_earnings is not None:
         config.exclude_earnings = exclude_earnings
+    if include_unclear_sentiment is not None:
+        config.include_unclear_sentiment = include_unclear_sentiment
     if subreddit is not None:
         config.subreddit = subreddit
     if reddit_limit is not None:
@@ -100,6 +103,7 @@ def scan(
     typer.echo(f"📏 Max Spread: {config.max_spread_pct:.1f}%")
     typer.echo(f"🔺 Delta Range: {config.delta_min:.2f} - {config.delta_max:.2f}")
     typer.echo(f"📅 Exclude Earnings: {config.exclude_earnings}")
+    typer.echo(f"💭 Include Unclear Sentiment: {config.include_unclear_sentiment}")
     typer.echo(f"📱 Subreddit: r/{config.subreddit}")
     typer.echo(f"📝 Reddit Limit: {config.reddit_limit} posts")
     typer.echo(f"⏰ Window: {config.reddit_window_days} days")
@@ -127,10 +131,37 @@ def scan(
             # Display summary
             typer.echo(f"📊 Successfully fetched {len(posts)} posts")
             
-            if verbose and posts:
-                typer.echo("\n📝 Sample posts:")
-                for i, post in enumerate(posts[:3]):  # Show first 3 posts
-                    typer.echo(f"  {i+1}. [{post['score']}] {post['title'][:60]}...")
+            # Step 4: Sentiment Analysis
+            typer.echo("\n💭 Analyzing post sentiment...")
+            try:
+                from .sentiment import analyze_sentiment_distribution, filter_posts_by_sentiment
+                
+                # Analyze sentiment distribution
+                distribution = analyze_sentiment_distribution(posts)
+                typer.echo(f"📈 Sentiment distribution:")
+                typer.echo(f"   Positive: {distribution['positive']} ({distribution['positive']/len(posts)*100:.1f}%)")
+                typer.echo(f"   Negative: {distribution['negative']} ({distribution['negative']/len(posts)*100:.1f}%)")
+                typer.echo(f"   Unclear:  {distribution['unclear']} ({distribution['unclear']/len(posts)*100:.1f}%)")
+                
+                # Filter posts by sentiment (default: positive only)
+                filtered_posts = filter_posts_by_sentiment(
+                    posts,
+                    include_positive=True,
+                    include_negative=False,
+                    include_unclear=config.include_unclear_sentiment
+                )
+                
+                typer.echo(f"🎯 Filtered to {len(filtered_posts)} posts for screening")
+                
+                if verbose and filtered_posts:
+                    typer.echo("\n📝 Sample filtered posts:")
+                    for i, post in enumerate(filtered_posts[:3]):  # Show first 3 posts
+                        sentiment = post.get('sentiment', 'unknown')
+                        typer.echo(f"  {i+1}. [{post['score']}] [{sentiment}] {post['title'][:50]}...")
+                        
+            except Exception as e:
+                typer.echo(f"❌ Sentiment analysis error: {e}", err=True)
+                filtered_posts = posts  # Fall back to unfiltered posts
                     
         except Exception as e:
             typer.echo(f"❌ Reddit ingestion error: {e}", err=True)

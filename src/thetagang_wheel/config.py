@@ -27,6 +27,9 @@ class Config(BaseSettings):
     delta_max: float = Field(0.35, env="DELTA_MAX", description="Maximum delta for put options")
     exclude_earnings: bool = Field(True, env="EXCLUDE_EARNINGS", description="Exclude options near earnings")
     
+    # Sentiment Filtering
+    include_unclear_sentiment: bool = Field(False, env="INCLUDE_UNCLEAR_SENTIMENT", description="Include posts with unclear sentiment")
+    
     # Reddit Configuration  
     subreddit: str = Field("thetagang", env="SUBREDDIT", description="Subreddit to analyze")
     reddit_limit: int = Field(200, env="REDDIT_LIMIT", description="Maximum posts to fetch")

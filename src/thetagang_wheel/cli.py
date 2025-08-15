@@ -54,16 +54,18 @@ def scan(
     
     # Load base configuration
     try:
-        # Load config without required Reddit fields for now (since we're just echoing)
+        # Try to load real config first for Reddit ingestion
+        config = get_config()
+        has_real_config = True
+        
+    except Exception:
+        # Fallback to stub config for testing configuration display only
         config = Config(
             reddit_client_id="stub",
             reddit_secret="stub", 
             reddit_user_agent="stub"
         )
-        
-    except Exception as e:
-        typer.echo(f"❌ Configuration error: {e}", err=True)
-        raise typer.Exit(1)
+        has_real_config = False
     
     # Override with CLI arguments if provided
     if capital is not None:
@@ -108,9 +110,41 @@ def scan(
     if verbose:
         typer.echo("🔍 Verbose logging enabled")
     
-    # TODO: Implement the actual scanning logic
-    typer.echo("\n🚧 Scanning logic not yet implemented")
-    typer.echo("Configuration parsing and echo working correctly!")
+    # Test Reddit ingestion (Step 3)
+    if has_real_config:
+        typer.echo("\n🔍 Testing Reddit Ingestion...")
+        try:
+            from .reddit_ingest import fetch_posts
+            
+            # Fetch posts using the configured parameters
+            posts = fetch_posts(
+                limit=config.reddit_limit,
+                window_days=config.reddit_window_days,
+                subreddit=config.subreddit,
+                config=config
+            )
+            
+            # Display summary
+            typer.echo(f"📊 Successfully fetched {len(posts)} posts")
+            
+            if verbose and posts:
+                typer.echo("\n📝 Sample posts:")
+                for i, post in enumerate(posts[:3]):  # Show first 3 posts
+                    typer.echo(f"  {i+1}. [{post['score']}] {post['title'][:60]}...")
+                    
+        except Exception as e:
+            typer.echo(f"❌ Reddit ingestion error: {e}", err=True)
+            if "reddit_client_id" in str(e) or "REDDIT_CLIENT_ID" in str(e):
+                typer.echo("💡 Make sure your .env file is configured with Reddit API credentials", err=True)
+            else:
+                typer.echo("💡 Check your Reddit API credentials and internet connection", err=True)
+    else:
+        typer.echo("\n⚠️ Reddit ingestion skipped - no .env configuration found")
+        typer.echo("💡 Create a .env file with Reddit API credentials to test ingestion")
+    
+    # TODO: Implement the rest of the scanning logic (sentiment, tickers, options)
+    typer.echo("\n🚧 Sentiment analysis, ticker extraction, and options screening not yet implemented")
+    typer.echo("Configuration parsing and Reddit ingestion working correctly!")
 
 
 @app.command()
